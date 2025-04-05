@@ -1,0 +1,58 @@
+---
+title: WLED JSON API
+---
+
+Let's do this with R now, using [direct HHTP requests](https://kno.wled.ge/interfaces/json-api/).
+
+
+```{r}
+library(tidyverse)
+library(httr2)
+library(here)
+led_device <- "http://wled-test1.local"
+```
+
+Let's start by querying the device by sending a GET request to `/json`.
+
+:::{.callout-note}
+You can also send one to `/json/state`, `/json/info`, `/json/eff` or `/json/pal` to get individual parts of the response.
+:::
+
+```{r}
+request(led_device) |>
+  req_url_path("json") |>
+  req_method("GET") |>
+  req_perform() |>
+  resp_body_json(simplifyVector = TRUE) ->
+led_info
+
+names(led_info)
+
+led_info |> pluck("state")
+led_info |> pluck("state") |> pluck("seg") |> as_tibble() |> pull(col)
+led_info |> pluck("info") |> names()
+led_info |> pluck("palettes")
+```
+
+Or we can send a POST to `/json` or `/json/state` to update the bar:
+
+```{r}
+request(led_device) |>
+  req_url_path("json") |>
+  req_method("POST") |>
+  req_body_json(list(
+    state = list(
+      on = TRUE,
+      bri = 127,
+      transition = 0,
+      seg = list(
+        list(col = list(
+          c(0, 255, 200)
+        ))
+      )
+    )
+  )) |>
+  req_perform() |>
+  resp_body_json(simplifyVector = TRUE)
+```
+
